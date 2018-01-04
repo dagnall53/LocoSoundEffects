@@ -7,3 +7,6 @@ I hope to later add a wav mixer so that the chuff can continue whilst other effe
 A steam generator can be controlled (synchronous to the chuff) on pin D5.
 
 The code gradually increases speed, until a max is reched, when it applies the brakes and starts again. 
+
+The sound samples are contained in a spiffs file, and can be created using audacity or similar, or downloaded from free sample sets from DCC sound suppliers
+
