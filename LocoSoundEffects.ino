@@ -5,6 +5,11 @@
 const int WhistleDemandPin = 12;  //D6 on node mcu Used here for whistle demand
 const int SteamOutputPin = 14;  //D5   on node mcu Used here for Steam output
 
+const int WheelSensor_Pin = 5; //D1 on nodemcu
+#define UseWheelSensor  // to use this sensor!
+bool Last_sensor_State;
+
+
 long x;
 long TimeNow;
 long CPM;
@@ -28,14 +33,28 @@ void setup()
   Period=500;
   SteamPulseDuration=50;
   SteamOnStarted=millis();
+  pinMode(WheelSensor_Pin, INPUT_PULLUP);
+  Last_sensor_State=digitalRead(WheelSensor_Pin);
 }
 
 
-void loop()
-{ 
+void loop(){ 
+bool WheelSensor;
+WheelSensor=digitalRead(WheelSensor_Pin);
  TimeNow=millis();
  AudioLoop(1);
+if (WheelSensor){Last_sensor_State=1;}  // set at 1 if input is high (rest ready for next pulse) 
+ #ifdef UseWheelSensor
+ if (!WheelSensor&& Last_sensor_State   // Sensor is LOW, but last_state  was high, .. 
+     &&!SoundEffectPlaying()){
+      Last_sensor_State=0;  // set this low so it will not immediately retrigger this loop!! 
+      Chuff();SteamOnStarted=millis();digitalWrite(SteamOutputPin,HIGH);
+     }
+
+ #else
  if (TimeToChuff(Period)&&!SoundEffectPlaying()){Chuff();SteamOnStarted=millis();digitalWrite(SteamOutputPin,HIGH);}
+ #endif
+ 
  if ((SteamOnStarted+SteamPulseDuration)<=TimeNow){digitalWrite(SteamOutputPin,LOW);}
  //set speeds...
  if (x>=5000 ){x=0;CPM=CPM+48;
@@ -51,8 +70,7 @@ void loop()
 
  
  // play whistle by pressing button..
-  
-  if (!digitalRead(WhistleDemandPin) && !SoundEffectPlaying()){ BeginPlay("/Class 4 med with reverb 1.wav");}
+    if (!digitalRead(WhistleDemandPin) && !SoundEffectPlaying()){ BeginPlay("/Class 4 med with reverb 1.wav");}
   
 
    
@@ -60,5 +78,3 @@ void loop()
  delay(1);
 }
                           
-
-

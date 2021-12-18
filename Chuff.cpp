@@ -7,10 +7,10 @@ bool PlayingSoundEffect;
 bool ChuffPlaying;
 AudioGeneratorWAV *wav;
 AudioFileSourceSPIFFS *file;
-AudioOutputI2SDAC *out;
+AudioOutputI2S *out;
 
 void SetUpChuff(void){ 
-  out = new AudioOutputI2SDAC();
+  out = new AudioOutputI2S();
   wav = new AudioGeneratorWAV();
   WavDoneMsgSent=false;
   ChuffCycle=0;
@@ -92,4 +92,3 @@ void AudioLoop(int x){
     }
   
   
-
