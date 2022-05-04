@@ -1,7 +1,7 @@
-#include "AudioFileSourceSPIFFS.h"
-#include "AudioGeneratorWAV.h"
-#include "AudioOutputI2S.h"
+#ifndef Chuff_h 
+ #define Chuff_h
 
+#include <Arduino.h> //needed 
 
 bool TimeToChuff(long Period);
 void SetUpChuff(void);
@@ -28,3 +28,4 @@ Brake Squeal
 
 
 */
+#endif

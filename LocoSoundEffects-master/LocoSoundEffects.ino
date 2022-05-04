@@ -6,7 +6,7 @@ const int WhistleDemandPin = 12;  //D6 on node mcu Used here for whistle demand
 const int SteamOutputPin = 14;  //D5   on node mcu Used here for Steam output
 
 const int WheelSensor_Pin = 5; //D1 on nodemcu
-// #define UseWheelSensor  // to use this sensor!
+#define UseWheelSensor  // to use this sensor!
 bool Last_sensor_State;
 
 

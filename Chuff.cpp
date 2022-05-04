@@ -1,16 +1,49 @@
 #include "Chuff.h"
 //#define AudioDebug;
+
+
+#define _AudioNoDAC
+
+
+                       //see   https://github.com/earlephilhower/ESP8266Audio
+  #include "AudioFileSourceSPIFFS.h"      
+  #include "AudioGeneratorWAV.h"
+  #include "AudioOutputMixer.h"
+#ifdef _AudioDAC
+  #include "AudioOutputI2S.h"
+#endif
+#ifdef _AudioNoDAC
+  #include "AudioOutputI2SNoDAC.h"
+  #endif 
+
+
 int ChuffCycle;  
 long LastChuff;
 bool WavDoneMsgSent;
 bool PlayingSoundEffect;
 bool ChuffPlaying;
+
 AudioGeneratorWAV *wav;
 AudioFileSourceSPIFFS *file;
-AudioOutputI2S *out;
+
+AudioOutputMixer *mixer;
+AudioOutputMixerStub *stub[2];
+
+#ifdef _AudioDAC
+  AudioOutputI2S *out;
+#endif
+ #ifdef _AudioNoDAC
+  AudioOutputI2SNoDAC *out;
+#endif
 
 void SetUpChuff(void){ 
-  out = new AudioOutputI2S();
+ // out = new AudioOutputI2SNoDAC();
+   #ifdef _AudioDAC
+  out = new AudioOutputI2S();     Serial.printf("-- Using I2S DAC -- \n");
+  #endif
+ #ifdef _AudioNoDAC
+  out = new AudioOutputI2SNoDAC(); Serial.printf("-- Using I2S No DAC -- \n");
+#endif
   wav = new AudioGeneratorWAV();
   WavDoneMsgSent=false;
   ChuffCycle=0;
