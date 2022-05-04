@@ -8,7 +8,7 @@
 bool TimeToChuff(long Period);
 void SetUPAudio(void);
 
-void Chuff(void);
+void Chuff (String ChuffChoice);
 void AudioLoop(int SoundToPlay);
 bool SoundPlaying (int ch);
 void BeginPlay(int Channel,const char *wavfilename, uint8_t CVVolume);
@@ -16,19 +16,7 @@ void BeginPlayND(int Channel,const char *wavfilename, uint8_t CVVolume); //no de
 bool FileExists(const char *wavfilename);
 void NEWChuff(String ChuffChoice, String ChuffChoiceFast,long ChuffSwitchSpeed);
 void SetChuffPeriod(uint8_t Speed, int WavsPerRevolution );
-/*expected wav files are:
- Initiate sound:
-   /initiated.wav
- 
- CHUFFS:
-  /ch1.wav
-  /ch2.wav
-  /ch3.wav
-  /ch4.wav
-Whistle:
-  /whistle.wav
-Brake Squeal
-  /brakes.wav
+/*
 
 
 

@@ -81,15 +81,15 @@ void BeginPlay (int Channel,const char *wavfilename, uint8_t CVVolume){
   if (!FileExists(wavfilename)){
      #ifdef _SERIAL_Audio_DEBUG
                Serial.print(" .wav file missing");
-          #endif
-                               return;
-                               }
+      #endif
+      return;
+    }
 
   if (wav[Channel]->isRunning()) {   wav[Channel]->stop();  //delay(1);
           #ifdef _SERIAL_Audio_DEBUG
                Serial.print(" Truncated to restart");
           #endif
-                   }//truncate a playing wav 
+     }//truncate a playing wav 
 
   
   float Volume;
@@ -120,17 +120,17 @@ void BeginPlay (int Channel,const char *wavfilename, uint8_t CVVolume){
 }
 
 void BeginPlayND (int Channel,const char *wavfilename, uint8_t CVVolume){ 
-  //"no deletes" version that is used at startup to set thing s
+  //"no deletes" version that must be used at startup to set things up
  if (!FileExists(wavfilename)){
   Audio_Setup_Problem=true;
   Serial.print("WAV File [");Serial.print(wavfilename);
   Serial.println("] Missing- Switching off Audio");
   return;
      }
-  uint32_t NOW;
-  NOW=micros();
+  //uint32_t NOW;
+  //NOW=micros();
   float Volume;
-  Volume=(float)CVVolume*128/16384;  // the 128 here was CV[100].. the overall gain control 
+  //Volume=(float)CVVolume*128/16384;  // the 128 here was CV[100].. the overall gain control 
 // #ifndef _LOCO_SERVO_Driven_Port
   Volume=0.9; // difficult to access the CV's if not a loco, so just use 90% 
 // #endif
@@ -160,17 +160,39 @@ void BeginPlayND (int Channel,const char *wavfilename, uint8_t CVVolume){
 }
 
 
-void Chuff (void){
-   if (wav[0]->isRunning()) {wav[0]->stop(); //delete file; delay(1);
+void Chuff (String ChuffChoice){
+  String Chuff;
+  if (wav[0]->isRunning()) {wav[0]->stop(); //delete file; delay(1);
                           }// truncate play
-   switch (ChuffCycle){ LastChuff=millis();
-                        
-                              case 0:BeginPlay(0,"/BBCH1.wav",128);ChuffCycle=1;break;
-                              case 1:BeginPlay(0,"/BBCH2.wav",128);ChuffCycle=2;break;
-                              case 2:BeginPlay(0,"/BBCH3.wav",128);ChuffCycle=3;break;
-                              case 3:BeginPlay(0,"/BBCH4.wav",128);ChuffCycle=0;break;
-     }
+  switch (ChuffCycle){LastChuff=millis();
+                  
+                              case 0:Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;
+                                  //Stuff here only for strobe use, one per rev to help set chuff rate
+                                  //SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH);
+                                                                                                              break;
+                              case 1:Chuff=ChuffChoice+"2.wav"; if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=2;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                              case 2:Chuff=ChuffChoice+"3.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=3;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                              case 3:Chuff=ChuffChoice+"4.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                        }
+
+   //OLD method                       
+//   switch (ChuffCycle){ LastChuff=millis();
+//                        
+//                              case 0:BeginPlay(0,"/BBCH1.wav",60);ChuffCycle=1;break;
+//                              case 1:BeginPlay(0,"/BBCH2.wav",60);ChuffCycle=2;break;
+//                              case 2:BeginPlay(0,"/BBCH3.wav",60);ChuffCycle=3;break;
+//                              case 3:BeginPlay(0,"/BBCH4.wav",60);ChuffCycle=0;break;
+//     }
 }
+
+
+
+
+
+
 void NEWChuff(String ChuffChoice, String ChuffChoiceFast,long ChuffSwitchSpeed){
   String Chuff;
   float Speed;
@@ -184,7 +206,7 @@ void NEWChuff(String ChuffChoice, String ChuffChoiceFast,long ChuffSwitchSpeed){
    
    
    #ifdef SteamOutputPin  //steamoutputpin stuff  here for one puff per wav send 
-      SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH); //steamoutputpin stuff  here for one puff per chuff 
+      SteamOnStarted=millis(); digitalWrite(SteamOutputPin,HIGH); //steamoutputpin stuff  here for one puff per chuff 
    #endif
 
    if (Speed <= ChuffSwitchSpeed){ 
@@ -233,7 +255,7 @@ void AudioLoop(int32_t TimeNow){
 if (!Audio_Setup_Problem) {
   
  #ifdef SteamOutputPin
-              if ((SteamOnStarted+SteamPulseDuration)<=TimeNow){digitalWrite(NodeMCUPinD[SteamOutputPin],LOW);}
+              if ((SteamOnStarted+SteamPulseDuration)<=TimeNow){digitalWrite(SteamOutputPin,LOW);}
  #endif 
 
      SoundPlaying0=false; 
