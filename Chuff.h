@@ -3,12 +3,17 @@
 
 #include <Arduino.h> //needed 
 
+
+
 bool TimeToChuff(long Period);
-void SetUpChuff(void);
-void BeginPlay(const char *wavfilename);
+void SetUPAudio(void);
+
 void Chuff(void);
 void AudioLoop(int SoundToPlay);
 bool SoundEffectPlaying(void);
+void BeginPlay(int Channel,const char *wavfilename, uint8_t CVVolume);
+void BeginPlayND(int Channel,const char *wavfilename, uint8_t CVVolume); //no deletes version used for the first play. after this can delete opened stuff
+bool FileExists(const char *wavfilename);
 
 /*expected wav files are:
  Initiate sound:
