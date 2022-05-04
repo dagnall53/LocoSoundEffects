@@ -15,10 +15,12 @@
 
 
 
-
-const int WhistleDemandPin = 12;  //D6 on node mcu Used here for whistle demand
 const int SteamOutputPin = 14;  //D5   on node mcu Used here for Steam output
 
+const int WhistleDemandPin = 12;  //D6 on node mcu Used here for whistle demand
+const int DemandD2 =  4  ;     //D2
+const int DemandD4 =  2  ;     //D4
+const int DemandD3 =  0  ;     //D3
 const int WheelSensor_Pin = 5; //D1 on nodemcu
 // #define UseWheelSensor  // to use this sensor!
 bool Last_sensor_State;
@@ -32,6 +34,8 @@ long SteamOnStarted;
 long SteamPulseDuration;
 bool Audio_Setup_Problem;
 
+bool SoundPlaying1;
+bool SoundPlaying0;
 
   
 void setup()
@@ -43,6 +47,10 @@ void setup()
   delay(100);
   x=0;
   pinMode(WhistleDemandPin, INPUT_PULLUP);
+  pinMode(DemandD2, INPUT_PULLUP);
+  pinMode(DemandD3, INPUT_PULLUP);
+  pinMode(DemandD4, INPUT_PULLUP);
+  
   pinMode(SteamOutputPin, OUTPUT);
   CPM=60; // 121= 5mph start ChuffsPerMinute  1216 cpm or  304 rpm = 50 mph for 1.4m dia wheels
   Period=500;
@@ -69,6 +77,10 @@ void setup()
 }
 
 
+
+
+
+
 void loop(){ 
 bool WheelSensor;
  
@@ -81,14 +93,13 @@ bool WheelSensor;
     Last_sensor_State=1;
     }  // set at 1 if input is high (rest ready for next pulse) 
  
-  if (!WheelSensor&& Last_sensor_State   // Sensor is LOW, but last_state  was high, .. 
-     &&!SoundEffectPlaying()){
+  if (!WheelSensor&& Last_sensor_State )  // Sensor is LOW, but last_state  was high, .. 
+     {
       Last_sensor_State=0;  // set this low so it will not immediately retrigger this loop!! 
       Chuff();SteamOnStarted=millis();digitalWrite(SteamOutputPin,HIGH);
      }
 
  #else  (// !UseWheelSensor
- //if (TimeToChuff(Period)&&!SoundEffectPlaying()){ old 
   if (TimeToChuff(Period)){
      Chuff();
      SteamOnStarted=millis();
@@ -97,7 +108,7 @@ bool WheelSensor;
  #endif  //if def UseWheelSensor
  
  if ((SteamOnStarted+SteamPulseDuration)<=TimeNow){digitalWrite(SteamOutputPin,LOW);}
- //set speeds...
+ //Increment the speeds for test...
  if (x>=5000 ){x=0;CPM=CPM+48;
               if (CPM>=1){ Period=60000/CPM;}else {Period=500;} //half sec if CPM =0 
               Serial.print("Speed(mph):");Serial.print(CPM/24);//increase CPM
@@ -113,11 +124,23 @@ bool WheelSensor;
 
  
  // play Sound effect on Channel 1 by pressing button..
-    if (!digitalRead(WhistleDemandPin) && !SoundEffectPlaying()){ 
-      //Serial.print("SOUND EFFECT DEMAND");
+    if (!digitalRead(WhistleDemandPin) && !SoundPlaying1){ 
+      Serial.println("SOUND EFFECT DEMAND 1");
        BeginPlay(1,"/F1.wav",100);//F1 Ivor F6 Bell 
        }
-  
+if (!digitalRead(DemandD4) && !SoundPlaying1){ 
+      Serial.println("SOUND EFFECT DEMAND 4");
+       BeginPlay(1,"/pfeiferl.wav",100);//F1 Ivor F6 Bell 
+       }
+       
+  if (!digitalRead(DemandD3) && !SoundPlaying1){  
+      Serial.println("SOUND EFFECT DEMAND 2");
+       BeginPlay(1,"/F3.wav",100);//F1 Ivor F6 Bell 
+       }
+  if (!digitalRead(DemandD2) && !SoundPlaying1){ 
+      Serial.println("SOUND EFFECT DEMAND 3");
+       BeginPlay(1,"/F2.wav",100);//F1 Ivor F6 Bell 
+       }
 
    
   x=x+1;  //loop count
