@@ -37,9 +37,14 @@ bool Audio_Setup_Problem;
 bool SoundPlaying1;
 bool SoundPlaying0;
 
+uint8_t CV[200];   // CVs for speed etc!
+extern int Last_Speed_Demand;
   
-void setup()
-{
+void setup(){
+ CV[1]=3;
+ CV[100]=100;
+ CV[2]=4;  // start "voltage"
+  
   Serial.begin(115200);
   delay(100);
   Audio_Setup_Problem = false;
@@ -58,7 +63,7 @@ void setup()
   SteamOnStarted=millis();
   pinMode(WheelSensor_Pin, INPUT_PULLUP);
   Last_sensor_State=digitalRead(WheelSensor_Pin);
-
+  Last_Speed_Demand= 0;
   //***********CHECK SPIFFS directory
   if (!SPIFFS.begin ()) {
     Serial.println ("An Error has occurred while mounting SPIFFS");
@@ -79,8 +84,8 @@ void setup()
 
 
 
-
-
+extern long Chuff_wav_period;
+extern int Last_Speed_Demand;
 void loop(){ 
 bool WheelSensor;
  
@@ -96,12 +101,16 @@ bool WheelSensor;
   if (!WheelSensor&& Last_sensor_State )  // Sensor is LOW, but last_state  was high, .. 
      {
       Last_sensor_State=0;  // set this low so it will not immediately retrigger this loop!! 
-      Chuff();SteamOnStarted=millis();digitalWrite(SteamOutputPin,HIGH);
+      Chuff();
+      //  NOt Working NEWChuff("/BBCH","/Fast",35);
+      SteamOnStarted=millis();
+      digitalWrite(SteamOutputPin,HIGH);
      }
 
  #else  (// !UseWheelSensor
   if (TimeToChuff(Period)){
-     Chuff();
+    Chuff();
+    // Not working just for demonstration! NEWChuff("/Fenchurch","/Fench",35); //~35 mph rough trigger speed .."chuff(" has formulae with number of wavcyclesperrpm  chuff selects sound samples (slow and Fast) and per wav switch period interval t sect slow or fast"/BBCH" is my best sounding set.. or try "/ivor_" or "/Fenchurch"  
      SteamOnStarted=millis();
      digitalWrite(SteamOutputPin,HIGH);
      }
@@ -110,6 +119,7 @@ bool WheelSensor;
  if ((SteamOnStarted+SteamPulseDuration)<=TimeNow){digitalWrite(SteamOutputPin,LOW);}
  //Increment the speeds for test...
  if (x>=5000 ){x=0;CPM=CPM+48;
+              Last_Speed_Demand = 10;
               if (CPM>=1){ Period=60000/CPM;}else {Period=500;} //half sec if CPM =0 
               Serial.print("Speed(mph):");Serial.print(CPM/24);//increase CPM
               Serial.print("  Period:");Serial.print(Period);Serial.print("ms");
@@ -119,7 +129,7 @@ bool WheelSensor;
               }
    // FORCE a single speed for test
   Period=238;            
-
+  Chuff_wav_period = Period;
 
 
  

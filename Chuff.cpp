@@ -22,9 +22,15 @@ long LastChuff;
 bool WavDoneMsgSent;
 bool PlayingSoundEffect;
 bool ChuffPlaying;
+int Wavs_Per_Revolution;
+int Last_Wavs_Per_Revolution;
+long Chuff_wav_period;
+int Last_Speed_Demand;
+
 extern bool Audio_Setup_Problem;
 extern bool SoundPlaying1;
 extern bool SoundPlaying0;
+extern uint8_t CV[200];
 AudioGeneratorWAV *wav[2];
 AudioFileSourceSPIFFS *file[2];
 
@@ -155,17 +161,74 @@ void BeginPlayND (int Channel,const char *wavfilename, uint8_t CVVolume){
 
 
 void Chuff (void){
-//  if (!PlayingSoundEffect){
    if (wav[0]->isRunning()) {wav[0]->stop(); //delete file; delay(1);
                           }// truncate play
    switch (ChuffCycle){ LastChuff=millis();
                         
-                              case 0:BeginPlay(0,"/ch1.wav",128);ChuffCycle=1;break;
-                              case 1:BeginPlay(0,"/ch2.wav",128);ChuffCycle=2;break;
-                              case 2:BeginPlay(0,"/ch3.wav",128);ChuffCycle=3;break;
-                              case 3:BeginPlay(0,"/ch4.wav",128);ChuffCycle=0;break;
-}//}
+                              case 0:BeginPlay(0,"/BBCH1.wav",128);ChuffCycle=1;break;
+                              case 1:BeginPlay(0,"/BBCH2.wav",128);ChuffCycle=2;break;
+                              case 2:BeginPlay(0,"/BBCH3.wav",128);ChuffCycle=3;break;
+                              case 3:BeginPlay(0,"/BBCH4.wav",128);ChuffCycle=0;break;
+     }
 }
+void NEWChuff(String ChuffChoice, String ChuffChoiceFast,long ChuffSwitchSpeed){
+  String Chuff;
+  float Speed;
+  Speed =(10000)/(Chuff_wav_period*Wavs_Per_Revolution);  // ~250ms "4 Chuffs_wav_period" at 10MPH
+   
+   if (wav[0]->isRunning()) {wav[0]->stop();  //delay(1);
+                      #ifdef _SERIAL_Audio_DEBUG
+                        Serial.print("Chuff -Trunc- ");
+                      #endif
+                     }//truncate play
+   
+   
+   #ifdef SteamOutputPin  //steamoutputpin stuff  here for one puff per wav send 
+      SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH); //steamoutputpin stuff  here for one puff per chuff 
+   #endif
+
+   if (Speed <= ChuffSwitchSpeed){ 
+                 Wavs_Per_Revolution=4;
+                 if(Last_Wavs_Per_Revolution != Wavs_Per_Revolution){
+                    SetChuffPeriod(Last_Speed_Demand,Wavs_Per_Revolution);  delay(1); // revise chuff timing, use last stored speed setting
+                                          Last_Wavs_Per_Revolution=Wavs_Per_Revolution;  }
+                 
+                 switch (ChuffCycle){
+                  
+                              case 0:Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;
+                                  //Stuff here only for strobe use, one per rev to help set chuff rate
+                                  //SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH);
+                                                                                                              break;
+                              case 1:Chuff=ChuffChoice+"2.wav"; if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=2;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                              case 2:Chuff=ChuffChoice+"3.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=3;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                              case 3:Chuff=ChuffChoice+"4.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;}
+                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
+                        }
+                }else{
+                  Wavs_Per_Revolution=1;
+                  if(Last_Wavs_Per_Revolution != Wavs_Per_Revolution){
+                           SetChuffPeriod(Last_Speed_Demand,Wavs_Per_Revolution);  delay(1); // revise chuff timing
+                                        Last_Wavs_Per_Revolution=Wavs_Per_Revolution; }
+                  switch (ChuffCycle){ 
+                              case 0:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0; // select which wav phase sound best when running fast, or use a completely separate fast wav file
+                              //Stuff here only for strobe use, one per rev to help set chuff rate
+                                  //SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH);
+                              break;
+                              case 1:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
+                              case 2:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
+                              case 3:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
+                                          }
+                      }
+                      
+
+
+}//chuff void
+
+
+
+
 void AudioLoop(int32_t TimeNow){
 if (!Audio_Setup_Problem) {
   
@@ -221,60 +284,25 @@ bool FileExists(const char *wavfilename){
  return true;
 }
 
-void NEWChuff(String ChuffChoice, String ChuffChoiceFast,long ChuffSwitchSpeed){
-#if defined (_Audio) && defined (_LOCO_SERVO_Driven_Port)
-  String Chuff;
-  float Speed;
-  Speed =(10000)/(Chuff_wav_period*Wavs_Per_Revolution);  // ~250ms "4 Chuffs_wav_period" at 10MPH
-   if((ChuffsOn())&& (POWERON)){ //F9 is chuffs on
-   if (wav[0]->isRunning()) {wav[0]->stop();  //delay(1);
-                      #ifdef _SERIAL_Audio_DEBUG
-                        Serial.print("Chuff -Trunc- ");
-                      #endif
-                     }//truncate play
-   
-   
-   #ifdef SteamOutputPin  //steamoutputpin stuff  here for one puff per wav send 
-      SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH); //steamoutputpin stuff  here for one puff per chuff 
-   #endif
-
-   if (Speed <= ChuffSwitchSpeed){ 
-                 Wavs_Per_Revolution=4;
-                 if(Last_Wavs_Per_Revolution != Wavs_Per_Revolution){
-                    SetChuffPeriod(Last_DCC_Speed_Demand,Wavs_Per_Revolution);  delay(1); // revise chuff timing, use last stored speed setting
-                                          Last_Wavs_Per_Revolution=Wavs_Per_Revolution;  }
-                 
-                 switch (ChuffCycle){
-                  
-                              case 0:Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;
-                                  //Stuff here only for strobe use, one per rev to help set chuff rate
-                                  //SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH);
-                                                                                                              break;
-                              case 1:Chuff=ChuffChoice+"2.wav"; if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=2;}
-                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
-                              case 2:Chuff=ChuffChoice+"3.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=3;}
-                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
-                              case 3:Chuff=ChuffChoice+"4.wav";if (FileExists(Chuff.c_str())){BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;}
-                                                                   else{Chuff=ChuffChoice+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=1;} break;
-                        }
-                }else{
-                  Wavs_Per_Revolution=1;
-                  if(Last_Wavs_Per_Revolution != Wavs_Per_Revolution){
-                           SetChuffPeriod(Last_DCC_Speed_Demand,Wavs_Per_Revolution);  delay(1); // revise chuff timing
-                                        Last_Wavs_Per_Revolution=Wavs_Per_Revolution; }
-                  switch (ChuffCycle){ 
-                              case 0:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0; // select which wav phase sound best when running fast, or use a completely separate fast wav file
-                              //Stuff here only for strobe use, one per rev to help set chuff rate
-                                  //SteamOnStarted=millis(); digitalWrite(NodeMCUPinD[SteamOutputPin],HIGH);
-                              break;
-                              case 1:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
-                              case 2:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
-                              case 3:Chuff=ChuffChoiceFast+"1.wav";BeginPlay(0,Chuff.c_str(),CV[110]);ChuffCycle=0;break;
-                                          }
-                      }
-                      } // chuffs on
-
-#endif   
-}//chuff void
-
+void SetChuffPeriod(uint8_t Speed, int WavsPerRevolution ){
+  uint16_t inv_Speed;
+      inv_Speed=10360;  // period in ms of a "stopped" just to cover div by zero case its not covered later. 
+      if (Speed<=CV[2]){inv_Speed=10360; }  // if lower than the "start" value, assume motor is off
+            else{     
+      inv_Speed=10360/Speed;} //ms     ///Proper calcs below, but you will probably need to play with the value to fit your wheel etc.
+                                         //typically 10mph=259ms quarter chuff rate at 10MPH 
+                                         //typically 10mph=2590 inv_RPM 
+                                         //e.g. We have 1609*10 m/hr = 16090/3600 m per second = 4.46 m per second
+                                         //wheel of 1.4m dia is 4.4 circumference, so we have ~ 1 rotation per second
+                                         //so with 4 wavperrev we will get ~250ms "Chuff_wav_period" at 10MPH
+      if(CV[47]==0){CV[47]=48;}
+      if(CV[47]==1){CV[47]=48;}
+  
+      Chuff_wav_period=(CV[47]*inv_Speed)/(WavsPerRevolution*48);  // setting is period of one revolution in ms calcs assume a 4 cycle sound effect. New code allows other cyclles
+                                            //  CV[47]/48 is   adjusters into it later
+             #if defined (_SERIAL_Audio_DEBUG) ||  defined (_PWM_DEBUG)
+              // DebugSprintfMsgSend( sprintf ( DebugMsg, "Chuff_wav_period for<%d> phase sounds set %d ms",WavsPerRevolution, Chuff_wav_period));
+             #endif
+     if (Chuff_wav_period<=50){Chuff_wav_period=50;} //sets a minimum 50ms chuff period
+}
  
